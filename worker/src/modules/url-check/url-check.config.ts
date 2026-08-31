@@ -12,3 +12,7 @@ export const URL_CHECK_RATE_LIMIT = {
 
 /** In-flight HTTP checks per worker process. */
 export const URL_CHECK_CONCURRENCY = 5;
+
+export const URL_CHECK_MAX_ATTEMPTS = 3;
+
+export const URL_CHECK_BACKOFF_DELAY_MS = 1000;
