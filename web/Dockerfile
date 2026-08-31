@@ -14,6 +14,8 @@ COPY shared/package.json ./shared/package.json
 RUN pnpm install
 
 COPY shared ./shared
-COPY worker ./worker
+COPY web ./web
 
-CMD ["pnpm", "--filter", "./worker", "dev"]
+EXPOSE 3000
+
+CMD ["pnpm", "--filter", "./web", "dev"]

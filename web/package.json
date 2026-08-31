@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@url-checker/shared": "workspace:*",
     "next": "16.3.3",
     "react": "19.2.8",
     "react-dom": "19.2.8"
@@ -22,6 +23,5 @@
     "eslint-config-next": "16.3.3",
     "tailwindcss": "^4",
     "typescript": "^5"
-  },
-  "packageManager": "pnpm@10.4.1"
+  }
 }

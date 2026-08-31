@@ -19,4 +19,4 @@ COPY api ./api
 
 EXPOSE 4000
 
-CMD ["pnpm", "--filter", "api", "dev"]
+CMD ["pnpm", "--filter", "./api", "dev"]
