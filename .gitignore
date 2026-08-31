@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Env files (never commit secrets/local config)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Build output
+dist/
+build/
+**/dist/
+**/build/
+
+# Next.js
+.next/
+out/
+**/.next/
+**/out/
+next-env.d.ts
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Docker
+docker-compose.override.yml
+
+# Coverage / test artifacts
+coverage/
+.nyc_output/
+
+# Misc
+*.zip
+
+REQUIREMENTS.md
