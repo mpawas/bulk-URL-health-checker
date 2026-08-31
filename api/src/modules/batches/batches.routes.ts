@@ -55,6 +55,7 @@ export async function registerBatchesRoutes(
     return reply.code(201).send({
       batchId: batch.batchId,
       totalUrls: batch.totalUrls,
+      enqueueFailures: batch.enqueueFailures,
     });
   });
 }
