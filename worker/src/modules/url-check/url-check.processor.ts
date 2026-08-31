@@ -3,6 +3,7 @@ import IORedis from "ioredis";
 import { UrlCheckJobDataSchema } from "@url-checker/shared";
 import { prisma } from "../../prisma.js";
 import { fetchUrl } from "./fetch-url.js";
+import { parsePageTitle } from "./parse-title.js";
 import {
   URL_CHECK_MAX_ATTEMPTS,
   URL_CHECK_QUEUE,
@@ -40,6 +41,8 @@ export async function processUrlCheck(job: Job): Promise<void> {
 
   await recordCheckStart();
   const fetched = await fetchUrl(data.url);
+  const pageTitle =
+    fetched.body !== null ? parsePageTitle(fetched.body) : null;
   const maxAttempts = job.opts.attempts ?? URL_CHECK_MAX_ATTEMPTS;
   const lastAttempt = attemptCount >= maxAttempts;
 
@@ -51,7 +54,7 @@ export async function processUrlCheck(job: Job): Promise<void> {
       status: "failed",
       statusCode: null,
       responseTimeMs: fetched.responseTimeMs,
-      pageTitle: null,
+      pageTitle,
     });
     return;
   }
@@ -67,7 +70,7 @@ export async function processUrlCheck(job: Job): Promise<void> {
     status: ok ? "completed" : "failed",
     statusCode: fetched.statusCode,
     responseTimeMs: fetched.responseTimeMs,
-    pageTitle: null,
+    pageTitle,
   });
 
   if (statusCode >= 400 && statusCode < 500) {
