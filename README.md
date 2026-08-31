@@ -23,6 +23,12 @@ docker compose up --build
 
 Stop with `Ctrl+C`, or `docker compose down` in another terminal.
 
+Prisma migrations apply automatically when the API starts (`prisma migrate deploy`).
+To apply them without starting the server: `pnpm migrate`.
+
+The API is organized as Fastify plugins (domain modules). Postgres access goes
+through Prisma — not raw `pg` queries.
+
 ## Architecture
 
 ```

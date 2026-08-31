@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Batch {
+  id             String    @id @db.Uuid
+  status         String
+  totalUrls      Int       @map("total_urls")
+  completedCount Int       @default(0) @map("completed_count")
+  failedCount    Int       @default(0) @map("failed_count")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  urls           BatchUrl[]
+
+  @@map("batches")
+}
+
+model BatchUrl {
+  id             String   @id @db.Uuid
+  batchId        String   @map("batch_id") @db.Uuid
+  batch          Batch    @relation(fields: [batchId], references: [id])
+  url            String
+  status         String
+  statusCode     Int?     @map("status_code")
+  responseTimeMs Int?     @map("response_time_ms")
+  pageTitle      String?  @map("page_title")
+  attemptCount   Int      @default(0) @map("attempt_count")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("batch_urls")
+}
