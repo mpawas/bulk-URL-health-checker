@@ -9,3 +9,6 @@ export const URL_CHECK_RATE_LIMIT = {
   max: 10,
   duration: 1000,
 } as const;
+
+/** In-flight HTTP checks per worker process. */
+export const URL_CHECK_CONCURRENCY = 5;

@@ -2,7 +2,7 @@ import { Worker } from "bullmq";
 import type { Job } from "bullmq";
 import IORedis from "ioredis";
 import { UrlCheckJobDataSchema } from "@url-checker/shared";
-import { URL_CHECK_QUEUE, URL_CHECK_RATE_LIMIT } from "./url-check.config.js";
+import { URL_CHECK_CONCURRENCY, URL_CHECK_QUEUE, URL_CHECK_RATE_LIMIT } from "./url-check.config.js";
 
 const connection = new IORedis(
   process.env.REDIS_URL ?? "redis://localhost:6379",
@@ -23,6 +23,7 @@ async function processUrlCheck(job: Job): Promise<void> {
 export function startUrlCheckWorker(): Worker {
   const worker = new Worker(URL_CHECK_QUEUE, processUrlCheck, {
     connection,
+    concurrency: URL_CHECK_CONCURRENCY,
     limiter: {
       max: URL_CHECK_RATE_LIMIT.max,
       duration: URL_CHECK_RATE_LIMIT.duration,
