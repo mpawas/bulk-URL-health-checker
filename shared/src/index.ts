@@ -70,6 +70,12 @@ export const UrlCheckJobDataSchema = z.object({
   url: z.string().url(),
 });
 export type UrlCheckJobData = z.infer<typeof UrlCheckJobDataSchema>;
+
+export function batchEventsChannel(batchId: string): string {
+  return `batch:${batchId}`;
+}
+
+export const BatchEventSchema = z.object({
   type: z.enum(["snapshot", "url_update"]),
   batch: BatchSchema,
   urls: z.array(BatchUrlSchema),

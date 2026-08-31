@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import prismaPlugin from "./plugins/prisma.js";
+import redisPlugin from "./plugins/redis.js";
 import healthModule from "./modules/health/health.module.js";
 import batchesModule from "./modules/batches/batches.module.js";
 
@@ -9,6 +10,7 @@ export async function buildApp() {
 
   await app.register(cors, { origin: true });
   await app.register(prismaPlugin);
+  await app.register(redisPlugin);
   await app.register(healthModule);
   await app.register(batchesModule);
 

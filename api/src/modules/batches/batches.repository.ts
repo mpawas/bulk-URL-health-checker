@@ -45,4 +45,11 @@ export class BatchesRepository {
 
     return { batchId, totalUrls: rows.length, urls: rows };
   }
+
+  async findSnapshot(batchId: string) {
+    return this.prisma.batch.findUnique({
+      where: { id: batchId },
+      include: { urls: { orderBy: { updatedAt: "asc" } } },
+    });
+  }
 }

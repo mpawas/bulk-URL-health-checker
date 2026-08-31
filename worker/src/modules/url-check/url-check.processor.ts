@@ -10,6 +10,7 @@ import {
 } from "./url-check.config.js";
 import { failureForStatus, isTransientStatus } from "./url-check.errors.js";
 import { UrlCheckRepository } from "./url-check.repository.js";
+import { publishBatchUpdate } from "./url-check.publisher.js";
 
 const rateRedis = new IORedis(
   process.env.REDIS_URL ?? "redis://localhost:6379",
@@ -94,4 +95,5 @@ async function persistOutcome(
     return;
   }
   await repository.refreshBatch(batchId);
+  await publishBatchUpdate(repository, batchId);
 }
