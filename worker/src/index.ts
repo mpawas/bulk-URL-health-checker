@@ -1,30 +1,18 @@
-import { Worker } from "bullmq";
-import IORedis from "ioredis";
+import { prisma } from "./prisma.js";
+import { startUrlCheckWorker } from "./modules/url-check/url-check.worker.js";
 
-const connection = new IORedis(
-  process.env.REDIS_URL ?? "redis://localhost:6379",
-  {
-    maxRetriesPerRequest: null,
-  },
-);
+const worker = startUrlCheckWorker();
 
-async function processUrlCheck(_job: unknown) {
-  throw new Error("not implemented — see Module 3 in REQUIREMENTS.md");
+async function shutdown(signal: string): Promise<void> {
+  console.log(`received ${signal}, shutting down worker`);
+  await worker.close();
+  await prisma.$disconnect();
+  process.exit(0);
 }
 
-const worker = new Worker("url-check", processUrlCheck, {
-  connection,
-  concurrency: 5,
-  limiter: {
-    max: 10,
-    duration: 1000,
-  },
+process.on("SIGTERM", () => {
+  void shutdown("SIGTERM");
 });
-
-worker.on("ready", () => console.log("worker ready, waiting for jobs"));
-worker.on("failed", (job, err) => console.error(`job ${job?.id} failed:`, err));
-
-process.on("SIGTERM", async () => {
-  await worker.close();
-  process.exit(0);
+process.on("SIGINT", () => {
+  void shutdown("SIGINT");
 });

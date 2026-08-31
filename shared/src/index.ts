@@ -64,7 +64,12 @@ export const CreateBatchResponseSchema = z.object({
 });
 export type CreateBatchResponse = z.infer<typeof CreateBatchResponseSchema>;
 
-export const BatchEventSchema = z.object({
+export const UrlCheckJobDataSchema = z.object({
+  batchUrlId: z.string().uuid(),
+  batchId: z.string().uuid(),
+  url: z.string().url(),
+});
+export type UrlCheckJobData = z.infer<typeof UrlCheckJobDataSchema>;
   type: z.enum(["snapshot", "url_update"]),
   batch: BatchSchema,
   urls: z.array(BatchUrlSchema),
