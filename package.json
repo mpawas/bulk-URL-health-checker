@@ -7,6 +7,7 @@
     "dev:worker": "pnpm --filter ./worker dev",
     "dev:web": "pnpm --filter ./web dev",
     "migrate": "pnpm --filter ./api migrate",
+    "test:rate-limit": "pnpm --filter ./worker test:rate-limit",
     "build": "pnpm -r build",
     "typecheck": "tsc -b --clean && tsc -b"
   },

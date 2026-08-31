@@ -59,7 +59,6 @@ services:
     build:
       context: .
       dockerfile: worker/Dockerfile
-    container_name: url-checker-worker
     restart: unless-stopped
     env_file: .env
     environment:

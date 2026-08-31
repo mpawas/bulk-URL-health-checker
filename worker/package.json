@@ -7,7 +7,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test:rate-limit": "tsx scripts/verify-rate-limit.ts"
   },
   "prisma": {
     "schema": "../api/prisma/schema.prisma"
