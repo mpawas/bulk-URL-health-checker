@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { CreateBatchRequestSchema } from "@url-checker/shared";
+import { CreateBatchRequestSchema, CreateBatchResponseSchema } from "@url-checker/shared";
 import type { BatchesService } from "./batches.service.js";
 import { parseCsvUrls } from "./parse-csv.js";
 
@@ -52,10 +52,14 @@ export async function registerBatchesRoutes(
     }
 
     const batch = await service.createFromUrlList(urls);
-    return reply.code(201).send({
-      batchId: batch.batchId,
-      totalUrls: batch.totalUrls,
-      enqueueFailures: batch.enqueueFailures,
-    });
+    return reply.code(201).send(
+      CreateBatchResponseSchema.parse({
+        batchId: batch.batchId,
+        totalUrls: batch.totalUrls,
+        status: "pending",
+        trackingUrl: `/batches/${batch.batchId}`,
+        enqueueFailures: batch.enqueueFailures,
+      }),
+    );
   });
 }

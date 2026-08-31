@@ -48,9 +48,19 @@ export const CreateBatchRequestSchema = z.object({
 });
 export type CreateBatchRequest = z.infer<typeof CreateBatchRequestSchema>;
 
+export const EnqueueFailureSchema = z.object({
+  batchUrlId: z.string().uuid(),
+  url: z.string().url(),
+  message: z.string(),
+});
+export type EnqueueFailure = z.infer<typeof EnqueueFailureSchema>;
+
 export const CreateBatchResponseSchema = z.object({
   batchId: z.string().uuid(),
   totalUrls: z.number().int().nonnegative(),
+  status: BatchStatus,
+  trackingUrl: z.string().min(1),
+  enqueueFailures: z.array(EnqueueFailureSchema),
 });
 export type CreateBatchResponse = z.infer<typeof CreateBatchResponseSchema>;
 
