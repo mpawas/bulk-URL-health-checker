@@ -15,7 +15,15 @@ export function BatchLive({
 }) {
   const { event, applyEvent } = useBatchEvents(batchId, initial);
   const { batch, urls } = event;
-  const done = batch.completedCount + batch.failedCount;
+  const settled = urls.filter((row) =>
+    row.status === "completed" ||
+    row.status === "failed" ||
+    row.status === "cancelled",
+  ).length;
+  const percent =
+    batch.totalUrls === 0
+      ? 0
+      : Math.round((settled / batch.totalUrls) * 100);
   const [busy, setBusy] = useState<"cancel" | "retry" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -53,8 +61,22 @@ export function BatchLive({
       <header className="flex flex-col gap-1">
         <h1 className="font-mono text-lg break-all">{batch.id}</h1>
         <p className="text-sm text-zinc-600">
-          {batch.status} · {done}/{batch.totalUrls} settled
+          {batch.status} · {settled}/{batch.totalUrls} settled
         </p>
+        <div
+          className="mt-3 h-2 w-full overflow-hidden rounded bg-zinc-200"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={percent}
+          aria-label="Batch progress"
+        >
+          <div
+            className="h-full bg-zinc-900 transition-[width]"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+        <p className="text-xs text-zinc-500">{percent}%</p>
         <div className="mt-2 flex gap-2">
           <button
             type="button"
