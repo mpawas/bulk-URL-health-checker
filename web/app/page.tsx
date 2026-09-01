@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Batch } from "@url-checker/shared";
 import { fetchBatchList } from "@/lib/batches";
 import { SubmitBatchForm } from "./submit-batch-form";
 
@@ -17,7 +18,7 @@ export default async function HomePage() {
           <p className="text-sm text-zinc-500">No batches yet.</p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {batches.map((batch) => (
+            {batches.map((batch: Batch) => (
               <li key={batch.id}>
                 <Link
                   href={`/batches/${batch.id}`}

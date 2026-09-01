@@ -1,4 +1,4 @@
-import type { BatchEvent } from "@url-checker/shared";
+import type { Batch, BatchEvent, BatchUrl } from "@url-checker/shared";
 
 /**
  * Snapshot replaces local state (Postgres is source of truth on reconnect).
@@ -13,8 +13,12 @@ export function mergeBatchEvent(
     return incoming;
   }
 
-  const currentById = new Map(current.urls.map((row) => [row.id, row]));
-  const incomingById = new Map(incoming.urls.map((row) => [row.id, row]));
+  const currentById = new Map<string, BatchUrl>(
+    current.urls.map((row) => [row.id, row]),
+  );
+  const incomingById = new Map<string, BatchUrl>(
+    incoming.urls.map((row) => [row.id, row]),
+  );
   const ids = new Set([...currentById.keys(), ...incomingById.keys()]);
 
   const urls = [...ids].map((id) => {
@@ -29,7 +33,7 @@ export function mergeBatchEvent(
     return next.updatedAt >= existing.updatedAt ? next : existing;
   });
 
-  const batch =
+  const batch: Batch =
     incoming.batch.updatedAt >= current.batch.updatedAt
       ? incoming.batch
       : current.batch;

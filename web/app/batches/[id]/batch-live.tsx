@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { BatchEvent } from "@url-checker/shared";
+import {
+  BatchStatus,
+  BatchUrlStatus,
+  type BatchEvent,
+  type BatchUrl,
+} from "@url-checker/shared";
 import { postBatchControl } from "@/lib/batch-actions";
 import { useBatchEvents } from "@/lib/use-batch-events";
 
@@ -15,10 +20,10 @@ export function BatchLive({
 }) {
   const { event, applyEvent } = useBatchEvents(batchId, initial);
   const { batch, urls } = event;
-  const settled = urls.filter((row) =>
-    row.status === "completed" ||
-    row.status === "failed" ||
-    row.status === "cancelled",
+  const settled = urls.filter((row: BatchUrl) =>
+    row.status === BatchUrlStatus.enum.completed ||
+    row.status === BatchUrlStatus.enum.failed ||
+    row.status === BatchUrlStatus.enum.cancelled,
   ).length;
   const percent =
     batch.totalUrls === 0
@@ -28,10 +33,11 @@ export function BatchLive({
   const [actionError, setActionError] = useState<string | null>(null);
 
   const canCancel =
-    batch.status === "pending" || batch.status === "running";
+    batch.status === BatchStatus.enum.pending ||
+    batch.status === BatchStatus.enum.running;
   const canRetry =
-    batch.status !== "cancelled" &&
-    urls.some((row) => row.status === "failed");
+    batch.status !== BatchStatus.enum.cancelled &&
+    urls.some((row) => row.status === BatchUrlStatus.enum.failed);
 
   async function run(
     kind: "cancel" | "retry",
