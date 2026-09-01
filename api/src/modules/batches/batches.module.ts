@@ -11,7 +11,7 @@ async function batchesModule(app: FastifyInstance): Promise<void> {
   await app.register(multipart);
   const repository = new BatchesRepository(app.prisma);
   const queue = new BatchesQueue();
-  const service = new BatchesService(repository, queue);
+  const service = new BatchesService(repository, queue, app.redis);
   await registerBatchesRoutes(app, service);
   await registerBatchEventRoutes(app, repository);
 }

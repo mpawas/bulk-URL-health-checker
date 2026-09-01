@@ -54,4 +54,21 @@ export class BatchesQueue {
 
     return failures;
   }
+
+  /** Drops waiting/delayed jobs. Active jobs stay with the worker to abort. */
+  async removeJobs(jobIds: string[]): Promise<void> {
+    for (const jobId of jobIds) {
+      try {
+        const removed = await this.queue.remove(jobId);
+        if (removed === 0) {
+          console.log("url-check job not removed (active or already gone)", {
+            jobId,
+          });
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("failed to remove url-check job", { jobId, message });
+      }
+    }
+  }
 }

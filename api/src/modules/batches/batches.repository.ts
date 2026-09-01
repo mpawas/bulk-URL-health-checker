@@ -52,4 +52,47 @@ export class BatchesRepository {
       include: { urls: { orderBy: { updatedAt: "asc" } } },
     });
   }
+
+  /**
+   * Marks the batch cancelled and flips queued/checking rows. Completed and
+   * failed rows are left alone. Returns job ids that must be dropped from BullMQ.
+   */
+  async cancel(batchId: string): Promise<
+    | { status: "not_found" }
+    | { status: "completed" }
+    | { status: "cancelled"; removedJobIds: string[] }
+  > {
+    return this.prisma.$transaction(async (tx) => {
+      const batch = await tx.batch.findUnique({
+        where: { id: batchId },
+        include: { urls: true },
+      });
+      if (!batch) {
+        return { status: "not_found" };
+      }
+      if (batch.status === "completed") {
+        return { status: "completed" };
+      }
+
+      const removedJobIds = batch.urls
+        .filter(
+          (row) => row.status === "queued" || row.status === "checking",
+        )
+        .map((row) => row.id);
+
+      await tx.batch.update({
+        where: { id: batchId },
+        data: { status: "cancelled" },
+      });
+      await tx.batchUrl.updateMany({
+        where: {
+          batchId,
+          status: { in: ["queued", "checking"] },
+        },
+        data: { status: "cancelled" },
+      });
+
+      return { status: "cancelled", removedJobIds };
+    });
+  }
 }
