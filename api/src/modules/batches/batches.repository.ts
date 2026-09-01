@@ -95,4 +95,61 @@ export class BatchesRepository {
       return { status: "cancelled", removedJobIds };
     });
   }
+
+  /**
+   * Re-queues only failed rows. Completed/cancelled URLs are never updated.
+   */
+  async retryFailed(batchId: string): Promise<
+    | { status: "not_found" }
+    | { status: "cancelled" }
+    | { status: "none" }
+    | { status: "queued"; batch: PersistedBatch }
+  > {
+    return this.prisma.$transaction(async (tx) => {
+      const batch = await tx.batch.findUnique({
+        where: { id: batchId },
+      });
+      if (!batch) {
+        return { status: "not_found" };
+      }
+      if (batch.status === "cancelled") {
+        return { status: "cancelled" };
+      }
+
+      const failed = await tx.batchUrl.findMany({
+        where: { batchId, status: "failed" },
+        select: { id: true, url: true },
+      });
+      if (failed.length === 0) {
+        return { status: "none" };
+      }
+
+      const ids = failed.map((row) => row.id);
+      await tx.batchUrl.updateMany({
+        where: { id: { in: ids }, status: "failed" },
+        data: {
+          status: "queued",
+          statusCode: null,
+          responseTimeMs: null,
+          pageTitle: null,
+        },
+      });
+      await tx.batch.update({
+        where: { id: batchId },
+        data: {
+          status: "running",
+          failedCount: 0,
+        },
+      });
+
+      return {
+        status: "queued",
+        batch: {
+          batchId,
+          totalUrls: failed.length,
+          urls: failed,
+        },
+      };
+    });
+  }
 }

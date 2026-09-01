@@ -15,6 +15,12 @@ export type CancelResult =
   | { status: "completed" }
   | { status: "cancelled"; event: BatchEvent };
 
+export type RetryFailedResult =
+  | { status: "not_found" }
+  | { status: "cancelled" }
+  | { status: "none"; event: BatchEvent }
+  | { status: "queued"; event: BatchEvent; enqueueFailures: EnqueueFailure[] };
+
 export class BatchesService {
   constructor(
     private readonly repository: BatchesRepository,
@@ -48,5 +54,30 @@ export class BatchesService {
       return { status: "not_found" };
     }
     return { status: "cancelled", event };
+  }
+
+  async retryFailed(batchId: string): Promise<RetryFailedResult> {
+    const result = await this.repository.retryFailed(batchId);
+    if (result.status === "not_found" || result.status === "cancelled") {
+      return result;
+    }
+
+    let enqueueFailures: EnqueueFailure[] = [];
+    if (result.status === "queued") {
+      enqueueFailures = await this.queue.enqueueUrlChecks(result.batch);
+    }
+
+    const event = await publishBatchUpdate(
+      this.redis,
+      this.repository,
+      batchId,
+    );
+    if (!event) {
+      return { status: "not_found" };
+    }
+    if (result.status === "none") {
+      return { status: "none", event };
+    }
+    return { status: "queued", event, enqueueFailures };
   }
 }

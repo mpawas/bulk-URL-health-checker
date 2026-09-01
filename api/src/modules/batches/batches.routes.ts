@@ -84,4 +84,23 @@ export async function registerBatchesRoutes(
       return result.event;
     },
   );
+
+  app.post<{ Params: { id: string } }>(
+    "/batches/:id/retry-failed",
+    async (request, reply) => {
+      const params = BatchIdParams.safeParse(request.params);
+      if (!params.success) {
+        return reply.code(400).send({ error: "invalid_id" });
+      }
+
+      const result = await service.retryFailed(params.data.id);
+      if (result.status === "not_found") {
+        return reply.code(404).send({ error: "not_found" });
+      }
+      if (result.status === "cancelled") {
+        return reply.code(409).send({ error: "batch_cancelled" });
+      }
+      return result.event;
+    },
+  );
 }

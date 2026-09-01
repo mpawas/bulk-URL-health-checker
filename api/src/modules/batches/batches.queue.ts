@@ -35,6 +35,10 @@ export class BatchesQueue {
       };
 
       try {
+        const existing = await this.queue.getJob(row.id);
+        if (existing) {
+          await existing.remove();
+        }
         await this.queue.add("check", data, {
           jobId: row.id,
           attempts: 3,
