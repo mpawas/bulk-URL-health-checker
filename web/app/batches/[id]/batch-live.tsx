@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import type { BatchEvent } from "@url-checker/shared";
+import { postBatchControl } from "@/lib/batch-actions";
 import { useBatchEvents } from "@/lib/use-batch-events";
 
 export function BatchLive({
@@ -14,6 +16,32 @@ export function BatchLive({
   const { event, applyEvent } = useBatchEvents(batchId, initial);
   const { batch, urls } = event;
   const done = batch.completedCount + batch.failedCount;
+  const [busy, setBusy] = useState<"cancel" | "retry" | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const canCancel =
+    batch.status === "pending" || batch.status === "running";
+  const canRetry =
+    batch.status !== "cancelled" &&
+    urls.some((row) => row.status === "failed");
+
+  async function run(
+    kind: "cancel" | "retry",
+    action: "cancel" | "retry-failed",
+  ): Promise<void> {
+    setActionError(null);
+    setBusy(kind);
+    try {
+      const next = await postBatchControl(batchId, action);
+      applyEvent(next);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`failed to ${action}`, err);
+      setActionError(message);
+    } finally {
+      setBusy(null);
+    }
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-10">
@@ -27,6 +55,27 @@ export function BatchLive({
         <p className="text-sm text-zinc-600">
           {batch.status} · {done}/{batch.totalUrls} settled
         </p>
+        <div className="mt-2 flex gap-2">
+          <button
+            type="button"
+            disabled={!canCancel || busy !== null}
+            onClick={() => void run("cancel", "cancel")}
+            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm disabled:opacity-40"
+          >
+            {busy === "cancel" ? "Cancelling…" : "Cancel"}
+          </button>
+          <button
+            type="button"
+            disabled={!canRetry || busy !== null}
+            onClick={() => void run("retry", "retry-failed")}
+            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm disabled:opacity-40"
+          >
+            {busy === "retry" ? "Retrying…" : "Retry failed"}
+          </button>
+        </div>
+        {actionError ? (
+          <p className="text-sm text-red-600">{actionError}</p>
+        ) : null}
       </header>
       <ul className="flex flex-col gap-2">
         {urls.map((row) => (
