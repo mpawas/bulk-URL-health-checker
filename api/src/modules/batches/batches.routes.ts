@@ -1,10 +1,12 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
-import { CreateBatchRequestSchema, CreateBatchResponseSchema } from "@url-checker/shared";
+import {
+  BatchEventSchema,
+  BatchIdParamsSchema,
+  CreateBatchRequestSchema,
+  CreateBatchResponseSchema,
+} from "@url-checker/shared";
 import type { BatchesService } from "./batches.service.js";
 import { parseCsvUrls } from "./parse-csv.js";
-
-const BatchIdParams = z.object({ id: z.string().uuid() });
 
 async function readUrls(
   request: FastifyRequest,
@@ -71,7 +73,7 @@ export async function registerBatchesRoutes(
   app.post<{ Params: { id: string } }>(
     "/batches/:id/cancel",
     async (request, reply) => {
-      const params = BatchIdParams.safeParse(request.params);
+      const params = BatchIdParamsSchema.safeParse(request.params);
       if (!params.success) {
         return reply.code(400).send({ error: "invalid_id" });
       }
@@ -83,14 +85,14 @@ export async function registerBatchesRoutes(
       if (result.status === "completed") {
         return reply.code(409).send({ error: "already_completed" });
       }
-      return result.event;
+      return BatchEventSchema.parse(result.event);
     },
   );
 
   app.post<{ Params: { id: string } }>(
     "/batches/:id/retry-failed",
     async (request, reply) => {
-      const params = BatchIdParams.safeParse(request.params);
+      const params = BatchIdParamsSchema.safeParse(request.params);
       if (!params.success) {
         return reply.code(400).send({ error: "invalid_id" });
       }
@@ -102,7 +104,7 @@ export async function registerBatchesRoutes(
       if (result.status === "cancelled") {
         return reply.code(409).send({ error: "batch_cancelled" });
       }
-      return result.event;
+      return BatchEventSchema.parse(result.event);
     },
   );
 }

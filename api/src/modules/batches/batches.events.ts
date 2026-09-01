@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { batchEventsChannel } from "@url-checker/shared";
+import { BatchIdParamsSchema, batchEventsChannel } from "@url-checker/shared";
 import type { BatchesRepository } from "./batches.repository.js";
 import { toBatchEvent } from "./batches.serialize.js";
 
@@ -8,7 +8,11 @@ export async function registerBatchEventRoutes(
   repository: BatchesRepository,
 ): Promise<void> {
   app.get<{ Params: { id: string } }>("/batches/:id", async (request, reply) => {
-    const snapshot = await repository.findSnapshot(request.params.id);
+    const params = BatchIdParamsSchema.safeParse(request.params);
+    if (!params.success) {
+      return reply.code(400).send({ error: "invalid_id" });
+    }
+    const snapshot = await repository.findSnapshot(params.data.id);
     if (!snapshot) {
       return reply.code(404).send({ error: "not_found" });
     }
@@ -18,7 +22,11 @@ export async function registerBatchEventRoutes(
   app.get<{ Params: { id: string } }>(
     "/batches/:id/events",
     async (request, reply) => {
-      const snapshot = await repository.findSnapshot(request.params.id);
+      const params = BatchIdParamsSchema.safeParse(request.params);
+      if (!params.success) {
+        return reply.code(400).send({ error: "invalid_id" });
+      }
+      const snapshot = await repository.findSnapshot(params.data.id);
       if (!snapshot) {
         return reply.code(404).send({ error: "not_found" });
       }
@@ -35,7 +43,7 @@ export async function registerBatchEventRoutes(
       reply.raw.write(`data: ${JSON.stringify(initial)}\n\n`);
 
       const subscriber = app.redis.duplicate();
-      const channel = batchEventsChannel(request.params.id);
+      const channel = batchEventsChannel(params.data.id);
       await subscriber.subscribe(channel);
 
       const onMessage = (_ch: string, message: string) => {

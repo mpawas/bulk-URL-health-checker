@@ -1,13 +1,7 @@
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
-import type { UrlCheckJobData } from "@url-checker/shared";
+import type { UrlCheckJobData, EnqueueFailure } from "@url-checker/shared";
 import type { PersistedBatch } from "./batches.repository.js";
-
-export type EnqueueFailure = {
-  batchUrlId: string;
-  url: string;
-  message: string;
-};
 
 export class BatchesQueue {
   private readonly queue: Queue<UrlCheckJobData>;

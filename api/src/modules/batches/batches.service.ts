@@ -6,7 +6,7 @@ import {
 } from "@url-checker/shared";
 import type { PersistedBatch } from "./batches.repository.js";
 import { BatchesRepository } from "./batches.repository.js";
-import type { EnqueueFailure } from "./batches.queue.js";
+import type { EnqueueFailure } from "@url-checker/shared";
 import { BatchesQueue } from "./batches.queue.js";
 import { publishBatchUpdate } from "./batches.publisher.js";
 import { readBatchListCache, writeBatchListCache, invalidateBatchListCache } from "./batches.cache.js";
