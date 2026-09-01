@@ -29,6 +29,9 @@ export async function processUrlCheck(job: Job): Promise<void> {
   const data = UrlCheckJobDataSchema.parse(job.data);
   const attemptCount = job.attemptsMade + 1;
 
+  // First-run and retry-failed jobs both land here. tryMarkChecking refuses
+  // completed/cancelled rows, so a retry cannot clobber a successful check.
+
   const claimed = await repository.tryMarkChecking(
     data.batchUrlId,
     attemptCount,

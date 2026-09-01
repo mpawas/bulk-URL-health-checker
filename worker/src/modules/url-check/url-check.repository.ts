@@ -12,14 +12,15 @@ export class UrlCheckRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   /**
-   * Claims the row for this attempt. Returns false when a completed/cancelled
-   * result already exists so a restart cannot overwrite it.
+   * Claims the row for this attempt. Queued, in-flight, and failed rows can be
+   * claimed so retry-failed reuses this processor. Completed and cancelled
+   * results are never overwritten.
    */
   async tryMarkChecking(id: string, attemptCount: number): Promise<boolean> {
     const result = await this.prisma.batchUrl.updateMany({
       where: {
         id,
-        status: { notIn: ["completed", "cancelled"] },
+        status: { in: ["queued", "checking", "failed"] },
       },
       data: {
         status: "checking",
