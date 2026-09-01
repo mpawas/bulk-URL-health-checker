@@ -40,6 +40,17 @@ export async function processUrlCheck(job: Job): Promise<void> {
     return;
   }
 
+  if (await repository.isBatchCancelled(data.batchId)) {
+    console.log("skipping in-flight job; batch cancelled before fetch", {
+      batchUrlId: data.batchUrlId,
+      batchId: data.batchId,
+    });
+    await repository.markUrlCancelled(data.batchUrlId);
+    await repository.refreshBatch(data.batchId);
+    await publishBatchUpdate(repository, data.batchId);
+    return;
+  }
+
   await recordCheckStart();
   const fetched = await fetchUrl(data.url);
   const pageTitle =

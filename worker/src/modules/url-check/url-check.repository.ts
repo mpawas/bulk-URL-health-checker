@@ -29,6 +29,28 @@ export class UrlCheckRepository {
     return result.count === 1;
   }
 
+  async isBatchCancelled(batchId: string): Promise<boolean> {
+    const batch = await this.prisma.batch.findUnique({
+      where: { id: batchId },
+      select: { status: true },
+    });
+    return batch?.status === "cancelled";
+  }
+
+  /**
+   * Used when a job is already active but the batch was cancelled. Never
+   * overwrites a completed result.
+   */
+  async markUrlCancelled(id: string): Promise<void> {
+    await this.prisma.batchUrl.updateMany({
+      where: {
+        id,
+        status: { notIn: ["completed"] },
+      },
+      data: { status: "cancelled" },
+    });
+  }
+
   async writeResult(input: UrlCheckResultWrite): Promise<boolean> {
     const result = await this.prisma.batchUrl.updateMany({
       where: {
@@ -62,8 +84,15 @@ export class UrlCheckRepository {
       const total = grouped.reduce((sum, row) => sum + row._count._all, 0);
       const inFlight = total - completed - failed - cancelled;
 
+      const existing = await tx.batch.findUnique({
+        where: { id: batchId },
+        select: { status: true },
+      });
+
       let status = "running";
-      if (inFlight === 0) {
+      if (existing?.status === "cancelled") {
+        status = "cancelled";
+      } else if (inFlight === 0) {
         status = cancelled === total ? "cancelled" : "completed";
       }
 
