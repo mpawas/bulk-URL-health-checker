@@ -1,4 +1,8 @@
-/** Queue name shared with the API producer. */
+/**
+ * Queue / limiter / retry knobs. Hardcoded for now so `docker compose up` has
+ * a known-good default. When you need to retune without a rebuild, read these
+ * from the environment (see worker/.env.example) instead of this file.
+ */
 export const URL_CHECK_QUEUE = "url-check";
 
 /**
