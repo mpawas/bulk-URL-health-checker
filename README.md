@@ -54,7 +54,7 @@ API and worker are designed to run as multiple containers against the same Postg
 and Redis:
 
 ```bash
-docker compose up --scale worker=2
+docker compose up --scale worker=2 --scale api=2
 ```
 
 The rate limiter is global (Redis-backed), so extra workers must not exceed 10 HTTP
@@ -65,7 +65,11 @@ pnpm test:rate-limit
 ```
 
 Multiple API instances share one Redis pub/sub channel per batch so every SSE client
-sees the same events.
+sees the same events. With two API containers (host ports 4000 and 4001):
+
+```bash
+pnpm test:sse-ha
+```
 
 ## Trade-offs
 

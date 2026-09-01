@@ -8,6 +8,7 @@
     "dev:web": "pnpm --filter ./web dev",
     "migrate": "pnpm --filter ./api migrate",
     "test:rate-limit": "pnpm --filter ./worker test:rate-limit",
+    "test:sse-ha": "pnpm --filter ./api test:sse-ha",
     "build": "pnpm -r build",
     "typecheck": "tsc -b --clean && tsc -b"
   },

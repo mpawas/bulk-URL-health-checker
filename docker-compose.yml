@@ -35,7 +35,6 @@ services:
     build:
       context: .
       dockerfile: api/Dockerfile
-    container_name: url-checker-api
     restart: unless-stopped
     env_file: .env
     environment:
@@ -43,7 +42,9 @@ services:
       REDIS_URL: redis://redis:6379
       PORT: 4000
     ports:
-      - "4000:4000"
+      - "4000-4001:4000"
+    # To test SSE fan-out across API instances:
+    # docker compose up --scale api=2
     depends_on:
       postgres:
         condition: service_healthy
