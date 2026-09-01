@@ -33,3 +33,7 @@ export async function writeBatchListCache(
     BATCH_LIST_CACHE_TTL_SECONDS,
   );
 }
+
+export async function invalidateBatchListCache(redis: IORedis): Promise<void> {
+  await redis.del(BATCH_LIST_CACHE_KEY);
+}

@@ -9,7 +9,7 @@ import { BatchesRepository } from "./batches.repository.js";
 import type { EnqueueFailure } from "./batches.queue.js";
 import { BatchesQueue } from "./batches.queue.js";
 import { publishBatchUpdate } from "./batches.publisher.js";
-import { readBatchListCache, writeBatchListCache } from "./batches.cache.js";
+import { readBatchListCache, writeBatchListCache, invalidateBatchListCache } from "./batches.cache.js";
 import { toBatch } from "./batches.serialize.js";
 
 export type CreatedBatch = PersistedBatch & {
@@ -55,6 +55,7 @@ export class BatchesService {
   async createFromUrlList(urls: string[]): Promise<CreatedBatch> {
     const batch = await this.repository.createWithUrls(urls);
     const enqueueFailures = await this.queue.enqueueUrlChecks(batch);
+    await invalidateBatchListCache(this.redis);
     return { ...batch, enqueueFailures };
   }
 
@@ -65,6 +66,7 @@ export class BatchesService {
     }
 
     await this.queue.removeJobs(result.removedJobIds);
+    await invalidateBatchListCache(this.redis);
     const event = await publishBatchUpdate(
       this.redis,
       this.repository,
@@ -87,6 +89,7 @@ export class BatchesService {
       enqueueFailures = await this.queue.enqueueUrlChecks(result.batch);
     }
 
+    await invalidateBatchListCache(this.redis);
     const event = await publishBatchUpdate(
       this.redis,
       this.repository,

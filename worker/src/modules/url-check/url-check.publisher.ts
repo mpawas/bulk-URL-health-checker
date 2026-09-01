@@ -1,5 +1,5 @@
 import IORedis from "ioredis";
-import { batchEventsChannel } from "@url-checker/shared";
+import { BATCH_LIST_CACHE_KEY, batchEventsChannel } from "@url-checker/shared";
 import type { UrlCheckRepository } from "./url-check.repository.js";
 import { toBatchEvent } from "./url-check.serialize.js";
 
@@ -18,4 +18,5 @@ export async function publishBatchUpdate(
   }
   const event = toBatchEvent("url_update", snapshot, snapshot.urls);
   await publisher.publish(batchEventsChannel(batchId), JSON.stringify(event));
+  await publisher.del(BATCH_LIST_CACHE_KEY);
 }
