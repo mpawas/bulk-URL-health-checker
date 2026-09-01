@@ -1,4 +1,4 @@
-import { Worker } from "bullmq";
+import { UnrecoverableError, Worker } from "bullmq";
 import IORedis from "ioredis";
 import {
   URL_CHECK_BACKOFF_DELAY_MS,
@@ -6,6 +6,7 @@ import {
   URL_CHECK_QUEUE,
   URL_CHECK_RATE_LIMIT,
 } from "./url-check.config.js";
+import { logCheck } from "./url-check.log.js";
 import { processUrlCheck } from "./url-check.processor.js";
 
 const connection = new IORedis(
@@ -27,10 +28,25 @@ export function startUrlCheckWorker(): Worker {
     },
   });
 
-  worker.on("ready", () => console.log("worker ready, waiting for jobs"));
-  worker.on("failed", (job, err) =>
-    console.error(`job ${job?.id} failed:`, err),
+  worker.on("ready", () =>
+    console.log("[url-check] ready     waiting for jobs"),
   );
+  worker.on("failed", (job, err) => {
+    // 4xx throws UnrecoverableError after the row is already stored as failed.
+    if (err instanceof UnrecoverableError) {
+      return;
+    }
+    const maxAttempts = job?.opts.attempts ?? 3;
+    const attempt = job?.attemptsMade ?? 0;
+    if (attempt >= maxAttempts) {
+      logCheck("failed", {
+        url: typeof job?.data?.url === "string" ? job.data.url : undefined,
+        attempt,
+        maxAttempts,
+        reason: err.message,
+      });
+    }
+  });
 
   return worker;
 }

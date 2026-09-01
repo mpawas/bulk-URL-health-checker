@@ -56,6 +56,12 @@ export class BatchesService {
     const batch = await this.repository.createWithUrls(urls);
     const enqueueFailures = await this.queue.enqueueUrlChecks(batch);
     await invalidateBatchListCache(this.redis);
+    console.log(
+      `[batches] created     id=${batch.batchId.slice(0, 8)}  urls=${batch.totalUrls}` +
+        (enqueueFailures.length > 0
+          ? `  enqueue_failures=${enqueueFailures.length}`
+          : ""),
+    );
     return { ...batch, enqueueFailures };
   }
 
@@ -67,6 +73,9 @@ export class BatchesService {
 
     await this.queue.removeJobs(result.removedJobIds);
     await invalidateBatchListCache(this.redis);
+    console.log(
+      `[batches] cancelled   id=${batchId.slice(0, 8)}  dropped_jobs=${result.removedJobIds.length}`,
+    );
     const event = await publishBatchUpdate(
       this.redis,
       this.repository,
@@ -99,8 +108,17 @@ export class BatchesService {
       return { status: "not_found" };
     }
     if (result.status === "none") {
+      console.log(
+        `[batches] retry-failed id=${batchId.slice(0, 8)}  none (no failed urls)`,
+      );
       return { status: "none", event };
     }
+    console.log(
+      `[batches] retry-failed id=${batchId.slice(0, 8)}  requeued=${result.batch.urls.length}` +
+        (enqueueFailures.length > 0
+          ? `  enqueue_failures=${enqueueFailures.length}`
+          : ""),
+    );
     return { status: "queued", event, enqueueFailures };
   }
 }

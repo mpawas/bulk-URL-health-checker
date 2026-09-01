@@ -8,6 +8,7 @@ export type FetchedUrl = {
   contentType: string | null;
   body: string | null;
   networkError: boolean;
+  errorKind: "timeout" | "network" | null;
 };
 
 export async function fetchUrl(url: string): Promise<FetchedUrl> {
@@ -37,14 +38,19 @@ export async function fetchUrl(url: string): Promise<FetchedUrl> {
       contentType,
       body,
       networkError: false,
+      errorKind: null,
     };
-  } catch {
+  } catch (err) {
+    const timedOut =
+      err instanceof Error &&
+      (err.name === "AbortError" || err.name === "TimeoutError");
     return {
       statusCode: null,
       responseTimeMs: Date.now() - started,
       contentType: null,
       body: null,
       networkError: true,
+      errorKind: timedOut ? "timeout" : "network",
     };
   } finally {
     clearTimeout(timeout);

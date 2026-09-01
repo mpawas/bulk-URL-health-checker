@@ -12,6 +12,7 @@ import {
   URL_CHECK_QUEUE,
 } from "./url-check.config.js";
 import { failureForStatus, isTransientStatus } from "./url-check.errors.js";
+import { logCheck } from "./url-check.log.js";
 import { UrlCheckRepository } from "./url-check.repository.js";
 import { publishBatchUpdate } from "./url-check.publisher.js";
 
@@ -31,43 +32,41 @@ async function recordCheckStart(): Promise<void> {
 export async function processUrlCheck(job: Job): Promise<void> {
   const data = UrlCheckJobDataSchema.parse(job.data);
   const attemptCount = job.attemptsMade + 1;
-
-  // First-run and retry-failed jobs both land here. tryMarkChecking refuses
-  // completed/cancelled rows, so a retry cannot clobber a successful check.
+  const maxAttempts = job.opts.attempts ?? URL_CHECK_MAX_ATTEMPTS;
+  const ctx = { batch: data.batchId, url: data.url, attempt: attemptCount, maxAttempts };
 
   const claimed = await repository.tryMarkChecking(
     data.batchUrlId,
     attemptCount,
   );
   if (!claimed) {
-    console.log("skipping stale job; row already completed or cancelled", {
-      batchUrlId: data.batchUrlId,
-    });
+    logCheck("skipped", { ...ctx, reason: "already completed or cancelled" });
     return;
   }
 
   if (await repository.isBatchCancelled(data.batchId)) {
-    console.log("skipping in-flight job; batch cancelled before fetch", {
-      batchUrlId: data.batchUrlId,
-      batchId: data.batchId,
-    });
+    logCheck("cancelled", { ...ctx, reason: "batch cancelled before fetch" });
     await repository.markUrlCancelled(data.batchUrlId);
     await repository.refreshBatch(data.batchId);
     await publishBatchUpdate(repository, data.batchId);
     return;
   }
 
+  logCheck("checking", ctx);
   await recordCheckStart();
   const fetched = await fetchUrl(data.url);
   const pageTitle =
     fetched.body !== null ? parsePageTitle(fetched.body) : null;
-  const maxAttempts = job.opts.attempts ?? URL_CHECK_MAX_ATTEMPTS;
   const lastAttempt = attemptCount >= maxAttempts;
+  const timing = { ...ctx, http: fetched.statusCode, ms: fetched.responseTimeMs };
 
   if (fetched.networkError) {
+    const kind = fetched.errorKind === "timeout" ? "timeout" : "network error";
     if (!lastAttempt) {
-      throw new Error(`network error fetching ${data.url}`);
+      logCheck("retry", { ...timing, reason: `${kind} (transient)` });
+      throw new Error(`${kind} fetching ${data.url}`);
     }
+    logCheck("failed", { ...timing, reason: `${kind} exhausted` });
     await persistOutcome(data.batchUrlId, data.batchId, {
       status: "failed",
       statusCode: null,
@@ -80,10 +79,19 @@ export async function processUrlCheck(job: Job): Promise<void> {
   const statusCode = fetched.statusCode ?? 0;
 
   if (isTransientStatus(statusCode) && !lastAttempt) {
+    logCheck("retry", { ...timing, reason: "5xx (transient)" });
     throw failureForStatus(statusCode);
   }
 
   const ok = statusCode >= 200 && statusCode < 400;
+  if (ok) {
+    logCheck("completed", { ...timing, title: pageTitle });
+  } else if (statusCode >= 400 && statusCode < 500) {
+    logCheck("failed", { ...timing, reason: "4xx (no retry)" });
+  } else {
+    logCheck("failed", { ...timing, reason: "5xx exhausted" });
+  }
+
   await persistOutcome(data.batchUrlId, data.batchId, {
     status: ok ? "completed" : "failed",
     statusCode: fetched.statusCode,
@@ -110,7 +118,10 @@ async function persistOutcome(
     UrlCheckResultWriteSchema.parse({ id, ...result }),
   );
   if (!written) {
-    console.log("skipping stale overwrite; row is no longer checking", { id });
+    logCheck("skipped", {
+      batch: batchId,
+      reason: "row is no longer checking",
+    });
     return;
   }
   await repository.refreshBatch(batchId);
