@@ -14,20 +14,34 @@ cp .env.example .env
 docker compose up --build
 ```
 
-| Service  | URL / port        |
-|----------|-------------------|
-| Web      | http://localhost:3000 |
-| API      | http://localhost:4000 (`GET /health`) |
-| Postgres | localhost:5432    |
-| Redis    | localhost:6379    |
+| Service  | URL / port |
+|----------|------------|
+| Web dashboard | http://localhost:3000 |
+| Batch page | http://localhost:3000/batches/{id} |
+| Sample CSV | http://localhost:3000/sample-urls.csv |
+| API | http://localhost:4000 (`GET /health`) |
+| API (2nd instance) | http://localhost:4001 when scaled to 2 |
+| Postgres | localhost:5432 |
+| Redis | localhost:6379 |
 
 Stop with `Ctrl+C`, or `docker compose down` in another terminal.
 
 Prisma migrations apply automatically when the API starts (`prisma migrate deploy`).
 To apply them without starting the server: `pnpm migrate`.
 
-The API is organized as Fastify plugins (domain modules). Postgres access goes
-through Prisma — not raw `pg` queries.
+The API is Fastify plugins (domain modules). Postgres access goes through Prisma.
+
+### API surface
+
+| Method | Path | Role |
+|--------|------|------|
+| GET | `/health` | Liveness |
+| GET | `/batches` | List (Redis cache, 30s TTL, invalidated on write) |
+| POST | `/batches` | Create from JSON `{ "urls": [...] }` or CSV upload |
+| GET | `/batches/:id` | Full snapshot from Postgres |
+| GET | `/batches/:id/events` | SSE: snapshot on connect, then Redis relay |
+| POST | `/batches/:id/cancel` | Cancel queued/checking rows, drop waiting jobs |
+| POST | `/batches/:id/retry-failed` | Re-enqueue only `failed` rows |
 
 ## Architecture
 
@@ -42,11 +56,16 @@ Browser ──► Next.js web ──HTTP──► Fastify API (stateless, N inst
 ```
 
 - **API** — Fastify, no in-process job state. Horizontal scale is safe because live
-  updates fan out through Redis pub/sub, not a single Node process.
+  updates fan out through Redis pub/sub, not a single Node process. `GET /batches`
+  is cached in Redis for 30 seconds and deleted on create, cancel, retry, and
+  every worker status write so the list never lags a user-visible write.
 - **Worker** — separate image/process from the API. BullMQ global rate limit is
-  10 req/s across all workers; concurrency is 5 in-flight checks per worker.
-- **Web** — Next.js App Router. Batch pages load current state from Postgres on
-  first paint, then subscribe to SSE.
+  10 req/s across all workers; concurrency is 5 in-flight checks per worker;
+  exponential backoff, max 3 attempts. Result writes are idempotent (`UPDATE`
+  guarded so completed/cancelled rows are never overwritten).
+- **Web** — Next.js App Router. The home page is a Server Component over the
+  cached list; a batch URL is a Server Component snapshot plus a Client
+  Component EventSource that merges snapshots on reconnect.
 
 ## Horizontal scaling
 
@@ -64,8 +83,9 @@ checks per second combined. After submitting a batch with 2+ workers running:
 pnpm test:rate-limit
 ```
 
-Multiple API instances share one Redis pub/sub channel per batch so every SSE client
-sees the same events. With two API containers (host ports 4000 and 4001):
+Multiple API instances share one Redis pub/sub channel per batch (`batch:{id}`) so
+every SSE client sees the same events. With two API containers (host ports 4000
+and 4001):
 
 ```bash
 pnpm test:sse-ha
@@ -80,6 +100,11 @@ pnpm test:sse-ha
   than holding exclusive client state.
 - Shared Zod package (`@url-checker/shared`) instead of duplicated TypeScript
   interfaces: api, worker, and web import the same schemas.
+- Prisma instead of raw `pg` queries: migrations and typed access live in one
+  schema; the worker generates a client from `api/prisma/schema.prisma`.
+- 30s list cache with explicit invalidation instead of always hitting Postgres:
+  the TTL is only a ceiling; writes delete `batches:list` so a refresh cannot
+  show a pre-write list.
 
 ## Assumptions
 
