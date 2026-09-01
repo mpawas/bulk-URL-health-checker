@@ -62,31 +62,41 @@ export function SubmitBatchForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-3">
-      <label className="flex flex-col gap-1 text-sm">
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-800">
         Paste URLs (one per line)
         <textarea
           value={text}
           onChange={(event) => setText(event.target.value)}
           rows={6}
-          className="rounded border border-zinc-300 bg-white px-3 py-2 font-mono text-sm"
+          className="rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono text-sm font-normal text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none"
           placeholder="https://example.com"
         />
       </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Or upload CSV
+      <label className="flex flex-col gap-1.5 text-sm font-medium text-zinc-800">
+        <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          Or upload CSV
+          <a
+            href="/sample-urls.csv"
+            download="sample-urls.csv"
+            className="font-normal text-zinc-600 underline hover:text-zinc-900"
+          >
+            Download sample CSV
+          </a>
+        </span>
         <input
           type="file"
           accept=".csv,text/csv,text/plain"
           onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-          className="text-sm"
+          className="text-sm font-normal text-zinc-700 file:mr-3 file:rounded-md file:border file:border-zinc-300 file:bg-zinc-50 file:px-3 file:py-1.5 file:text-sm file:text-zinc-800"
         />
       </label>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-red-700">{error}</p> : null}
       <button
         type="submit"
         disabled={pending}
-        className="w-fit rounded bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50"
+        className="w-fit rounded-md border border-zinc-900 bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+        style={{ backgroundColor: "#18181b", color: "#ffffff" }}
       >
         {pending ? "Submitting…" : "Submit batch"}
       </button>

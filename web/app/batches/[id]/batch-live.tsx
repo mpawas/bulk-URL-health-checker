@@ -58,19 +58,19 @@ export function BatchLive({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-10">
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-10 text-zinc-900">
       <p className="text-sm">
-        <Link href="/" className="text-zinc-500 hover:text-zinc-800">
+        <Link href="/" className="text-zinc-600 hover:text-zinc-900">
           ← Batches
         </Link>
       </p>
-      <header className="flex flex-col gap-1">
-        <h1 className="font-mono text-lg break-all">{batch.id}</h1>
-        <p className="text-sm text-zinc-600">
+      <header className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+        <h1 className="break-all font-mono text-base text-zinc-900">{batch.id}</h1>
+        <p className="mt-1 text-sm text-zinc-600">
           {batch.status} · {settled}/{batch.totalUrls} settled
         </p>
         <div
-          className="mt-3 h-2 w-full overflow-hidden rounded bg-zinc-200"
+          className="mt-4 h-2 w-full overflow-hidden rounded bg-zinc-200"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
@@ -82,13 +82,13 @@ export function BatchLive({
             style={{ width: `${percent}%` }}
           />
         </div>
-        <p className="text-xs text-zinc-500">{percent}%</p>
-        <div className="mt-2 flex gap-2">
+        <p className="mt-1 text-xs text-zinc-500">{percent}%</p>
+        <div className="mt-4 flex gap-2">
           <button
             type="button"
             disabled={!canCancel || busy !== null}
             onClick={() => void run("cancel", "cancel")}
-            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm disabled:opacity-40"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 hover:bg-zinc-50 disabled:opacity-40"
           >
             {busy === "cancel" ? "Cancelling…" : "Cancel"}
           </button>
@@ -96,23 +96,23 @@ export function BatchLive({
             type="button"
             disabled={!canRetry || busy !== null}
             onClick={() => void run("retry", "retry-failed")}
-            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm disabled:opacity-40"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 hover:bg-zinc-50 disabled:opacity-40"
           >
             {busy === "retry" ? "Retrying…" : "Retry failed"}
           </button>
         </div>
         {actionError ? (
-          <p className="text-sm text-red-600">{actionError}</p>
+          <p className="mt-2 text-sm text-red-700">{actionError}</p>
         ) : null}
       </header>
       <ul className="flex flex-col gap-2">
         {urls.map((row) => (
           <li
             key={row.id}
-            className="rounded border border-zinc-200 bg-white px-3 py-2 text-sm"
+            className="rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm"
           >
-            <p className="break-all font-mono">{row.url}</p>
-            <p className="text-zinc-500">
+            <p className="break-all font-mono text-zinc-900">{row.url}</p>
+            <p className="mt-1 text-zinc-600">
               {row.status}
               {row.statusCode !== null ? ` · HTTP ${row.statusCode}` : ""}
               {row.responseTimeMs !== null ? ` · ${row.responseTimeMs}ms` : ""}

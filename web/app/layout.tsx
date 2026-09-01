@@ -24,10 +24,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900">
+      <body className="flex min-h-full flex-col bg-zinc-100 text-zinc-900">
         <header className="border-b border-zinc-200 bg-white">
-          <div className="mx-auto flex w-full max-w-3xl items-center px-6 py-3">
-            <Link href="/" className="text-sm font-semibold tracking-tight">
+          <div className="mx-auto flex w-full max-w-3xl items-center px-6 py-4">
+            <Link
+              href="/"
+              className="text-sm font-semibold tracking-tight text-zinc-900 hover:text-zinc-600"
+            >
               URL Health Checker
             </Link>
           </div>
