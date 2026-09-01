@@ -81,3 +81,25 @@ export const BatchEventSchema = z.object({
   urls: z.array(BatchUrlSchema),
 });
 export type BatchEvent = z.infer<typeof BatchEventSchema>;
+
+export const BatchListResponseSchema = z.object({
+  batches: z.array(BatchSchema),
+});
+export type BatchListResponse = z.infer<typeof BatchListResponseSchema>;
+
+export const BATCH_LIST_CACHE_KEY = "batches:list";
+export const BATCH_LIST_CACHE_TTL_SECONDS = 30;
+
+export const BatchIdParamsSchema = z.object({
+  id: z.string().uuid(),
+});
+export type BatchIdParams = z.infer<typeof BatchIdParamsSchema>;
+
+export const UrlCheckResultWriteSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(["completed", "failed"]),
+  statusCode: z.number().int().nullable(),
+  responseTimeMs: z.number().int().nullable(),
+  pageTitle: z.string().nullable(),
+});
+export type UrlCheckResultWrite = z.infer<typeof UrlCheckResultWriteSchema>;

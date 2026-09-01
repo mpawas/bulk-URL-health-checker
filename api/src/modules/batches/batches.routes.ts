@@ -48,6 +48,8 @@ export async function registerBatchesRoutes(
   app: FastifyInstance,
   service: BatchesService,
 ): Promise<void> {
+  app.get("/batches", async () => service.list());
+
   app.post("/batches", async (request, reply) => {
     const urls = await readUrls(request, reply);
     if (!urls) {

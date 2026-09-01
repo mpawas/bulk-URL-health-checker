@@ -1,10 +1,16 @@
 import type IORedis from "ioredis";
-import type { BatchEvent } from "@url-checker/shared";
+import {
+  BatchListResponseSchema,
+  type BatchEvent,
+  type BatchListResponse,
+} from "@url-checker/shared";
 import type { PersistedBatch } from "./batches.repository.js";
 import { BatchesRepository } from "./batches.repository.js";
 import type { EnqueueFailure } from "./batches.queue.js";
 import { BatchesQueue } from "./batches.queue.js";
 import { publishBatchUpdate } from "./batches.publisher.js";
+import { readBatchListCache, writeBatchListCache } from "./batches.cache.js";
+import { toBatch } from "./batches.serialize.js";
 
 export type CreatedBatch = PersistedBatch & {
   enqueueFailures: EnqueueFailure[];
@@ -32,6 +38,20 @@ export class BatchesService {
    * Persist every URL first, then enqueue. Enqueue errors are surfaced
    * and never roll back the committed rows.
    */
+  async list(): Promise<BatchListResponse> {
+    const cached = await readBatchListCache(this.redis);
+    if (cached) {
+      return cached;
+    }
+
+    const rows = await this.repository.list();
+    const payload = BatchListResponseSchema.parse({
+      batches: rows.map((row) => toBatch(row)),
+    });
+    await writeBatchListCache(this.redis, payload);
+    return payload;
+  }
+
   async createFromUrlList(urls: string[]): Promise<CreatedBatch> {
     const batch = await this.repository.createWithUrls(urls);
     const enqueueFailures = await this.queue.enqueueUrlChecks(batch);

@@ -46,6 +46,12 @@ export class BatchesRepository {
     return { batchId, totalUrls: rows.length, urls: rows };
   }
 
+  async list() {
+    return this.prisma.batch.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
   async findSnapshot(batchId: string) {
     return this.prisma.batch.findUnique({
       where: { id: batchId },
