@@ -1,12 +1,11 @@
 import type { PrismaClient } from "@prisma/client";
+import {
+  BatchUrlStatus,
+  UrlCheckResultWriteSchema,
+  type UrlCheckResultWrite,
+} from "@url-checker/shared";
 
-export type UrlCheckResultWrite = {
-  id: string;
-  status: "completed" | "failed";
-  statusCode: number | null;
-  responseTimeMs: number | null;
-  pageTitle: string | null;
-};
+const CLAIMABLE_STATUSES: BatchUrlStatus[] = ["queued", "checking", "failed"];
 
 export class UrlCheckRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -20,7 +19,7 @@ export class UrlCheckRepository {
     const result = await this.prisma.batchUrl.updateMany({
       where: {
         id,
-        status: { in: ["queued", "checking", "failed"] },
+        status: { in: CLAIMABLE_STATUSES },
       },
       data: {
         status: "checking",
@@ -53,16 +52,17 @@ export class UrlCheckRepository {
   }
 
   async writeResult(input: UrlCheckResultWrite): Promise<boolean> {
+    const parsed = UrlCheckResultWriteSchema.parse(input);
     const result = await this.prisma.batchUrl.updateMany({
       where: {
-        id: input.id,
+        id: parsed.id,
         status: "checking",
       },
       data: {
-        status: input.status,
-        statusCode: input.statusCode,
-        responseTimeMs: input.responseTimeMs,
-        pageTitle: input.pageTitle,
+        status: parsed.status,
+        statusCode: parsed.statusCode,
+        responseTimeMs: parsed.responseTimeMs,
+        pageTitle: parsed.pageTitle,
       },
     });
     return result.count === 1;

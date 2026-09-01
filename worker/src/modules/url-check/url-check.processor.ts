@@ -1,6 +1,9 @@
 import type { Job } from "bullmq";
 import IORedis from "ioredis";
-import { UrlCheckJobDataSchema } from "@url-checker/shared";
+import {
+  UrlCheckJobDataSchema,
+  UrlCheckResultWriteSchema,
+} from "@url-checker/shared";
 import { prisma } from "../../prisma.js";
 import { fetchUrl } from "./fetch-url.js";
 import { parsePageTitle } from "./parse-title.js";
@@ -103,7 +106,9 @@ async function persistOutcome(
     pageTitle: string | null;
   },
 ): Promise<void> {
-  const written = await repository.writeResult({ id, ...result });
+  const written = await repository.writeResult(
+    UrlCheckResultWriteSchema.parse({ id, ...result }),
+  );
   if (!written) {
     console.log("skipping stale overwrite; row is no longer checking", { id });
     return;
